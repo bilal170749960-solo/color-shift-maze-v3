@@ -1,0 +1,6 @@
+{
+  "name": "Color Shift Maze",
+  "description": "A polished, responsive 2D puzzle game where you shift colors to solve intricate mazes, optimized for mobile and desktop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
