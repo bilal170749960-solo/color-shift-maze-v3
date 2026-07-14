@@ -2033,59 +2033,62 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center relative select-none">
-      {/* Maze Drawing Port Container */}
-      <div
-        ref={containerRef}
-        className="w-full flex-1 max-h-[60%] flex items-center justify-center relative outline-none"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <canvas
-          ref={canvasRef}
-          width={canvasWidth}
-          height={canvasHeight}
-          className="rounded-xl shadow-2xl border border-slate-800 bg-slate-950/80 transition-all cursor-pointer"
-        />
+    <div className="w-full h-full flex flex-col landscape:flex-row items-center justify-center relative select-none gap-4 md:gap-8 max-w-7xl mx-auto overflow-hidden p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pl-[calc(env(safe-area-inset-left)+12px)] pr-[calc(env(safe-area-inset-right)+12px)]">
+      {/* Game view area containing Canvas and Hint banner */}
+      <div className="flex flex-col items-center justify-center flex-1 max-h-[55%] landscape:max-h-full w-full landscape:w-auto relative gap-3 overflow-hidden">
+        {/* Maze Drawing Port Container */}
+        <div
+          ref={containerRef}
+          className="w-full flex-1 flex items-center justify-center relative outline-none overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <canvas
+            ref={canvasRef}
+            width={canvasWidth}
+            height={canvasHeight}
+            className="rounded-xl shadow-2xl border border-slate-800 bg-slate-950/80 transition-all cursor-pointer max-w-full max-h-full object-contain"
+          />
 
-        {/* Visual Key HUD showing Keys held on-board */}
-        {keysHeld > 0 && (
-          <div className="absolute top-4 left-4 bg-slate-900/90 border border-amber-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-amber-400 font-bold text-xs shadow-lg shadow-amber-500/10 animate-pulse">
-            🔑 Keys: {keysHeld}
-          </div>
+          {/* Visual Key HUD showing Keys held on-board */}
+          {keysHeld > 0 && (
+            <div className="absolute top-4 left-4 bg-slate-900/90 border border-amber-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-amber-400 font-bold text-xs shadow-lg shadow-amber-500/10 animate-pulse">
+              🔑 Keys: {keysHeld}
+            </div>
+          )}
+        </div>
+
+        {/* Dynamic Hint banner (Natural Teaching with no annoying Popups) */}
+        {level.description && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+            key={level.id + '_' + playerGridPos.x + '_' + playerGridPos.y}
+            className="px-4 py-2.5 bg-slate-900/90 backdrop-blur-xl border border-cyan-500/20 rounded-2xl text-[12px] text-center text-slate-200 max-w-[320px] leading-relaxed shadow-lg shadow-cyan-500/5 flex items-center justify-center gap-2 select-none"
+          >
+            <Sparkles size={13} className="text-cyan-400 animate-pulse flex-shrink-0" />
+            <span>
+              {level.id === 1 ? (
+                playerGridPos.x === 1 ? "Swipe or click ➜ on the D-pad to slide your red cube!" :
+                (playerGridPos.x === 2 || playerGridPos.x === 3) ? "Red Gate is open! Your red cube passes red barriers." :
+                "Now slide into the cyan portal to complete the level!"
+              ) : level.description}
+            </span>
+          </motion.div>
         )}
       </div>
 
-      {/* Dynamic Hint banner (Natural Teaching with no annoying Popups) */}
-      {level.description && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-          key={level.id + '_' + playerGridPos.x + '_' + playerGridPos.y}
-          className="mt-3 mx-4 px-4 py-2.5 bg-slate-900/90 backdrop-blur-xl border border-cyan-500/20 rounded-2xl text-[12px] text-center text-slate-200 max-w-[320px] leading-relaxed shadow-lg shadow-cyan-500/5 flex items-center justify-center gap-2"
-        >
-          <Sparkles size={13} className="text-cyan-400 animate-pulse flex-shrink-0" />
-          <span>
-            {level.id === 1 ? (
-              playerGridPos.x === 1 ? "Swipe or click ➜ on the D-pad to slide your red cube!" :
-              (playerGridPos.x === 2 || playerGridPos.x === 3) ? "Red Gate is open! Your red cube passes red barriers." :
-              "Now slide into the cyan portal to complete the level!"
-            ) : level.description}
-          </span>
-        </motion.div>
-      )}
-
       {/* Tactile Mobile D-PAD controls (Sleek Circular Glassmorphism Layout) */}
-      <div className="w-full flex justify-center pb-6 md:pb-10 mt-4 px-4 select-none">
-        <div className="relative w-44 h-44 rounded-full bg-slate-950/60 backdrop-blur-md border-2 border-slate-800/80 flex items-center justify-center shadow-2xl shadow-cyan-500/5 relative select-none">
+      <div className="flex-shrink-0 flex items-center justify-center w-full landscape:w-auto mt-2 landscape:mt-0 select-none pb-2">
+        <div className="relative p-[clamp(12px,2.5vw,20px)] rounded-[32px] bg-slate-950/65 backdrop-blur-md border border-slate-800/80 flex items-center justify-center shadow-2xl select-none">
           {/* Dynamic spectrum halo backing matching current cube's dye color */}
           <div 
-            className="absolute inset-0 rounded-full opacity-15 blur-lg transition-all duration-300"
+            className="absolute inset-0 rounded-[32px] opacity-10 blur-xl transition-all duration-300"
             style={{ backgroundColor: COLORS[playerColor].hex }}
           />
           
-          <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-2 relative z-10">
+          <div className="grid grid-cols-3 grid-rows-3 gap-[clamp(8px,1.5vw,16px)] relative z-10">
             {/* Row 1, Col 1: Empty Spacer */}
             <div />
             
@@ -2094,14 +2097,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               id="control_up"
               onPointerDown={(e) => handleButtonPress(e, 0, -1)}
               whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
-              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+              whileTap={{ scale: 0.92 }}
+              className="w-[clamp(52px,11vw,76px)] h-[clamp(52px,11vw,76px)] flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0 relative"
             >
               <div 
-                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
-                style={{ activeBorderColor: COLORS[playerColor].hex }}
+                className="w-full h-full rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950/95 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all text-slate-300 hover:text-white group"
+                style={{
+                  boxShadow: `0 0 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+                }}
               >
-                <ArrowUp size={20} />
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 group-hover:opacity-10 transition-opacity duration-200 pointer-events-none blur-md"
+                  style={{ backgroundColor: COLORS[playerColor].hex }}
+                />
+                <ArrowUp size={24} className="relative z-10 transition-transform group-active:scale-90" />
               </div>
             </motion.button>
             
@@ -2113,24 +2122,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               id="control_left"
               onPointerDown={(e) => handleButtonPress(e, -1, 0)}
               whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
-              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+              whileTap={{ scale: 0.92 }}
+              className="w-[clamp(52px,11vw,76px)] h-[clamp(52px,11vw,76px)] flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0 relative"
             >
               <div 
-                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
-                style={{ activeBorderColor: COLORS[playerColor].hex }}
+                className="w-full h-full rounded-2xl bg-gradient-to-r from-slate-900/90 to-slate-950/95 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all text-slate-300 hover:text-white group"
+                style={{
+                  boxShadow: `0 0 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+                }}
               >
-                <ArrowLeft size={20} />
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 group-hover:opacity-10 transition-opacity duration-200 pointer-events-none blur-md"
+                  style={{ backgroundColor: COLORS[playerColor].hex }}
+                />
+                <ArrowLeft size={24} className="relative z-10 transition-transform group-active:scale-90" />
               </div>
             </motion.button>
             
             {/* Row 2, Col 2: Glowing Core Centerpiece */}
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center w-[clamp(52px,11vw,76px)] h-[clamp(52px,11vw,76px)] relative animate-pulse">
               <div 
-                className="w-4.5 h-4.5 rounded-full blur-[0.5px] transition-all duration-300 animate-pulse shadow-lg"
+                className="w-[clamp(14px,3vw,20px)] h-[clamp(14px,3vw,20px)] rounded-full blur-[0.5px] transition-all duration-300 shadow-lg"
                 style={{ 
                   backgroundColor: COLORS[playerColor].hex,
-                  boxShadow: `0 0 14px ${COLORS[playerColor].hex}, 0 0 4px ${COLORS[playerColor].hex}` 
+                  boxShadow: `0 0 20px ${COLORS[playerColor].hex}, 0 0 8px ${COLORS[playerColor].hex}` 
                 }}
               />
             </div>
@@ -2140,14 +2155,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               id="control_right"
               onPointerDown={(e) => handleButtonPress(e, 1, 0)}
               whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
-              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+              whileTap={{ scale: 0.92 }}
+              className="w-[clamp(52px,11vw,76px)] h-[clamp(52px,11vw,76px)] flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0 relative"
             >
               <div 
-                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
-                style={{ activeBorderColor: COLORS[playerColor].hex }}
+                className="w-full h-full rounded-2xl bg-gradient-to-l from-slate-900/90 to-slate-950/95 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all text-slate-300 hover:text-white group"
+                style={{
+                  boxShadow: `0 0 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+                }}
               >
-                <ArrowRight size={20} />
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 group-hover:opacity-10 transition-opacity duration-200 pointer-events-none blur-md"
+                  style={{ backgroundColor: COLORS[playerColor].hex }}
+                />
+                <ArrowRight size={24} className="relative z-10 transition-transform group-active:scale-90" />
               </div>
             </motion.button>
 
@@ -2159,14 +2180,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               id="control_down"
               onPointerDown={(e) => handleButtonPress(e, 0, 1)}
               whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
-              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+              whileTap={{ scale: 0.92 }}
+              className="w-[clamp(52px,11vw,76px)] h-[clamp(52px,11vw,76px)] flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0 relative"
             >
               <div 
-                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
-                style={{ activeBorderColor: COLORS[playerColor].hex }}
+                className="w-full h-full rounded-2xl bg-gradient-to-t from-slate-900/90 to-slate-950/95 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all text-slate-300 hover:text-white group"
+                style={{
+                  boxShadow: `0 0 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+                }}
               >
-                <ArrowDown size={20} />
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 group-hover:opacity-10 transition-opacity duration-200 pointer-events-none blur-md"
+                  style={{ backgroundColor: COLORS[playerColor].hex }}
+                />
+                <ArrowDown size={24} className="relative z-10 transition-transform group-active:scale-90" />
               </div>
             </motion.button>
             
