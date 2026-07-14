@@ -82,6 +82,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Screen shake
   const shakeIntensity = useRef(0);
 
+  // Camera offsets for smooth kinetic follow & lead
+  const cameraOffset = useRef({ x: 0, y: 0 });
+  const cameraTarget = useRef({ x: 0, y: 0 });
+
   // Input states
   const isMoving = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -129,6 +133,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     playerTrail.current = [];
     particles.current = [];
     isMoving.current = false;
+    cameraOffset.current = { x: 0, y: 0 };
+    cameraTarget.current = { x: 0, y: 0 };
     startTimeRef.current = Date.now();
     elapsedRef.current = 0;
 
@@ -262,14 +268,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (isPaused || isCompleted) return;
 
     if (isMoving.current) {
-      // Input Buffer: if pressed within the last 50ms of current movement animation, buffer exactly ONE pending move
-      const now = performance.now();
-      const elapsed = now - moveStartTimeRef.current;
-      const duration = 150; // ms
-      const remaining = duration - elapsed;
-      if (remaining <= 50) {
-        bufferedInput.current = { dx, dy };
-      }
+      // Buffer any input pressed during active sliding animation to queue it instantly
+      bufferedInput.current = { dx, dy };
       return;
     }
 
@@ -438,7 +438,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (isMoving.current) {
         const now = performance.now();
         const elapsed = now - moveStartTimeRef.current;
-        const duration = 150; // ms (within the 120ms - 180ms range)
+        const duration = 130; // ms (within the 120ms - 180ms range for extreme snap)
         const t = Math.min(1, elapsed / duration);
         const easedT = 1 - Math.pow(1 - t, 3); // Ease-Out Cubic
 
@@ -470,6 +470,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         playerScale.current.x += (1 - playerScale.current.x) * 0.15;
         playerScale.current.y += (1 - playerScale.current.y) * 0.15;
       }
+
+      // Kinetic camera lead-ahead calculation
+      if (isMoving.current && lastMoveDir.current) {
+        cameraTarget.current.x = lastMoveDir.current.x * 0.12;
+        cameraTarget.current.y = lastMoveDir.current.y * 0.12;
+      } else {
+        cameraTarget.current.x = 0;
+        cameraTarget.current.y = 0;
+      }
+      cameraOffset.current.x += (cameraTarget.current.x - cameraOffset.current.x) * 0.12;
+      cameraOffset.current.y += (cameraTarget.current.y - cameraOffset.current.y) * 0.12;
 
       // Cooldown timer reduction
       Object.keys(teleporterCooldowns.current).forEach(key => {
@@ -632,6 +643,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const shakeY = (Math.random() - 0.5) * shakeIntensity.current * 10;
         ctx.translate(shakeX, shakeY);
       }
+
+      // Apply kinetic camera shift for dynamic juice & smooth movement leading
+      ctx.translate(cameraOffset.current.x * tileSize, cameraOffset.current.y * tileSize);
 
       // Draw Floor Background tiles
       const activeTile = playerStats?.activeTile || 'tile_standard';
@@ -2062,61 +2076,103 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         </motion.div>
       )}
 
-      {/* Tactile Mobile D-PAD controls (Glassmorphism layout) */}
-      <div className="w-full flex justify-center pb-6 md:pb-12 mt-4 px-4 select-none">
-        <div className="glass-panel p-4 rounded-3xl flex flex-col items-center gap-2 max-w-[200px] shadow-2xl relative select-none border border-white/5 bg-slate-900/40">
-          {/* UP Button */}
-          <motion.button
-            id="control_up"
-            onPointerDown={(e) => handleButtonPress(e, 0, -1)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 bg-transparent flex items-center justify-center select-none touch-none cursor-pointer border-0 outline-none p-0"
-          >
-            <div className="w-12 h-12 bg-slate-800 hover:bg-slate-700/80 text-slate-100 flex items-center justify-center rounded-2xl shadow-md border border-slate-700/50 transition-colors font-bold text-xl select-none">
-              <ArrowUp size={20} className="text-slate-100" />
-            </div>
-          </motion.button>
+      {/* Tactile Mobile D-PAD controls (Sleek Circular Glassmorphism Layout) */}
+      <div className="w-full flex justify-center pb-6 md:pb-10 mt-4 px-4 select-none">
+        <div className="relative w-44 h-44 rounded-full bg-slate-950/60 backdrop-blur-md border-2 border-slate-800/80 flex items-center justify-center shadow-2xl shadow-cyan-500/5 relative select-none">
+          {/* Dynamic spectrum halo backing matching current cube's dye color */}
+          <div 
+            className="absolute inset-0 rounded-full opacity-15 blur-lg transition-all duration-300"
+            style={{ backgroundColor: COLORS[playerColor].hex }}
+          />
           
-          <div className="flex gap-10 items-center justify-center select-none">
-            {/* LEFT Button */}
+          <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-2 relative z-10">
+            {/* Row 1, Col 1: Empty Spacer */}
+            <div />
+            
+            {/* Row 1, Col 2: UP Button */}
+            <motion.button
+              id="control_up"
+              onPointerDown={(e) => handleButtonPress(e, 0, -1)}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.9 }}
+              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+            >
+              <div 
+                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
+                style={{ activeBorderColor: COLORS[playerColor].hex }}
+              >
+                <ArrowUp size={20} />
+              </div>
+            </motion.button>
+            
+            {/* Row 1, Col 3: Empty Spacer */}
+            <div />
+
+            {/* Row 2, Col 1: LEFT Button */}
             <motion.button
               id="control_left"
               onPointerDown={(e) => handleButtonPress(e, -1, 0)}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.9 }}
-              className="w-16 h-16 bg-transparent flex items-center justify-center select-none touch-none cursor-pointer border-0 outline-none p-0"
+              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
             >
-              <div className="w-12 h-12 bg-slate-800 hover:bg-slate-700/80 text-slate-100 flex items-center justify-center rounded-2xl shadow-md border border-slate-700/50 transition-colors font-bold text-xl select-none">
-                <ArrowLeft size={20} className="text-slate-100" />
+              <div 
+                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
+                style={{ activeBorderColor: COLORS[playerColor].hex }}
+              >
+                <ArrowLeft size={20} />
               </div>
             </motion.button>
-            {/* RIGHT Button */}
+            
+            {/* Row 2, Col 2: Glowing Core Centerpiece */}
+            <div className="flex items-center justify-center">
+              <div 
+                className="w-4.5 h-4.5 rounded-full blur-[0.5px] transition-all duration-300 animate-pulse shadow-lg"
+                style={{ 
+                  backgroundColor: COLORS[playerColor].hex,
+                  boxShadow: `0 0 14px ${COLORS[playerColor].hex}, 0 0 4px ${COLORS[playerColor].hex}` 
+                }}
+              />
+            </div>
+            
+            {/* Row 2, Col 3: RIGHT Button */}
             <motion.button
               id="control_right"
               onPointerDown={(e) => handleButtonPress(e, 1, 0)}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.9 }}
-              className="w-16 h-16 bg-transparent flex items-center justify-center select-none touch-none cursor-pointer border-0 outline-none p-0"
+              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
             >
-              <div className="w-12 h-12 bg-slate-800 hover:bg-slate-700/80 text-slate-100 flex items-center justify-center rounded-2xl shadow-md border border-slate-700/50 transition-colors font-bold text-xl select-none">
-                <ArrowRight size={20} className="text-slate-100" />
+              <div 
+                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
+                style={{ activeBorderColor: COLORS[playerColor].hex }}
+              >
+                <ArrowRight size={20} />
               </div>
             </motion.button>
-          </div>
 
-          {/* DOWN Button */}
-          <motion.button
-            id="control_down"
-            onPointerDown={(e) => handleButtonPress(e, 0, 1)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 bg-transparent flex items-center justify-center select-none touch-none cursor-pointer border-0 outline-none p-0"
-          >
-            <div className="w-12 h-12 bg-slate-800 hover:bg-slate-700/80 text-slate-100 flex items-center justify-center rounded-2xl shadow-md border border-slate-700/50 transition-colors font-bold text-xl select-none">
-              <ArrowDown size={20} className="text-slate-100" />
-            </div>
-          </motion.button>
+            {/* Row 3, Col 1: Empty Spacer */}
+            <div />
+            
+            {/* Row 3, Col 2: DOWN Button */}
+            <motion.button
+              id="control_down"
+              onPointerDown={(e) => handleButtonPress(e, 0, 1)}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.9 }}
+              className="flex items-center justify-center touch-none select-none cursor-pointer border-none outline-none bg-transparent p-0"
+            >
+              <div 
+                className="w-11 h-11 rounded-xl bg-slate-900/90 hover:bg-slate-800/80 border border-slate-700/50 flex items-center justify-center shadow-lg transition-all active:shadow-cyan-500/20 active:border-cyan-500/60 text-slate-300 hover:text-white"
+                style={{ activeBorderColor: COLORS[playerColor].hex }}
+              >
+                <ArrowDown size={20} />
+              </div>
+            </motion.button>
+            
+            {/* Row 3, Col 3: Empty Spacer */}
+            <div />
+          </div>
         </div>
       </div>
     </div>
